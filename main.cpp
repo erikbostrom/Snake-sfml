@@ -27,7 +27,7 @@ int block_size_y = 32;
 int bg_block_size_x = 8;
 int bg_block_size_y = 8;
 float level_time[4]={5,50,75,100};
-float level_speed[4]={0.1,0.1*0.8,0.1*0.8*0.8,0.1*0.8*0.8*0.8};
+float level_speed[4]={0.2,0.2,0.2,0.1*0.8*0.8*0.8};
 bool game_over=false;
 bool highsc_flag;
 bool processing_writing=false;
@@ -37,22 +37,19 @@ string name="                    ";
 string input;
 
 int dir;
-int num = 4;
 int points = 0;
 
-
-struct Snake 
-{
-  int x;
-  int y;
-
-} snake[100];
 
 struct Fruit
 {
   int x;
   int y;
 
+  void new_location()
+  {
+    x = rand() % N;
+    y = rand() % M;
+  }  
 } fruit;
 
 
@@ -78,84 +75,108 @@ Vector2f center(T rect_shape)
 }
 
 
-void Update()
+class Snake
 {
-  int loc_x, loc_y;
-  bool on_snake_x=true, on_snake_y=true;
+private:
   
-  // Move snake
-  for (int i=num; i>0; --i)
-    {
-      snake[i].x = snake[i-1].x;
-      snake[i].y = snake[i-1].y;
-    }
+public:
 
-  if (dir==0) snake[0].y += 1;  
-  if (dir==1) snake[0].x -= 1;        
-  if (dir==2) snake[0].x += 1;         
-  if (dir==3) snake[0].y -= 1;
+  int x[100];
+  int y[100];
+
+  int length;
+  int head_dir;
+
+  Snake(){};
   
+  void init()
+  {
+    head_dir=0;
+    length=4;
+    x[0]=2;
+    x[1]=2;
+    x[2]=2;
+    x[3]=2;
+    y[0]=5;
+    y[1]=4;
+    y[2]=3;
+    y[3]=2;    
+  }
+  
+  void move_one_box()
+  {
+    
+    // Update body location
+    for (int i=length; i>0; --i)
+      {
+	x[i] = x[i-1];
+	y[i] = y[i-1];
+      }
 
-  // If coordinates of snake-head equals that of the fruit,
-  // then make the snake one square longer and put out a new fruit on
-  // a random location but not on top of the existing snake.
-  if ( (snake[0].x==fruit.x) && (snake[0].y==fruit.y) ) 
-    {
+    // Update head location
+    if (head_dir==0) y[0] += 1;  
+    if (head_dir==1) x[0] -= 1;        
+    if (head_dir==2) x[0] += 1;         
+    if (head_dir==3) y[0] -= 1;
 
-      while(on_snake_x)
-	{
-	  loc_x=rand() % N;
-	  for(int j=0; j<num; j++){
-	    if(loc_x==snake[j].x)
-	      {
-		on_snake_x=true;
-	      }
-	    else
-	      {
-		on_snake_x=false;
-	      };
+    // The domain is a torus.
+    if (x[0]>N-1) x[0]=0;
+    if (x[0]<0  ) x[0]=N-1;
+    if (y[0]>M-1) y[0]=0;
+    if (y[0]<0  ) y[0]=M-1;
+    
+  }
+
+  bool on_snake(int fx, int fy)
+  {
+    for (int i=0; i<length; i++)
+      {
+	if(x[i]==fx && y[i]==fy)
+	  {
+	    return true;
 	  }
-	}
-      fruit.x = loc_x;
-      on_snake_x=true;
-
-      while(on_snake_y)
-	{
-	  loc_y=rand() % M;
-	  for(int j=0; j<num; j++){
-	    if(loc_y==snake[j].y)
-	      {
-		on_snake_y=true;
-	      }
-	    else
-	      {
-		on_snake_y=false;
-	      }
+	else
+	  return false;
+      }
+  }
+  
+  bool on_snake_body(int fx, int fy)
+  {
+    bool temp;
+    for (int i=1; i<length; i++)
+      {
+	if( x[i]==fx && y[i]==fy )
+	  {
+	    temp = true;
 	  }
-	}
-      fruit.y = loc_y;
-      on_snake_y=true;
-      
-      num++;
-      points++;
-    }
+	else
+	  temp = false;
+      }
+    return temp;
+  }
 
-  // The domain is a torus.
-  if (snake[0].x>N-1) snake[0].x=0;
-  if (snake[0].x<0  ) snake[0].x=N-1;
-  if (snake[0].y>M-1) snake[0].y=0;
-  if (snake[0].y<0  ) snake[0].y=M-1;
+  bool eat(int fx, int fy)
+  {
+    if (x[0]==fx && y[0]==fy)
+      {
+	length++;
+	return true;
+      }
+    else
+      return false;
+  }
 
-
-  // If crash into the snake, then game over!
-  for (int i=1; i<num; i++)
-    {
-      if (snake[0].x==snake[i].x && snake[0].y==snake[i].y)
-	{
-	  game_over=true;
-	}
-    }
-}
+  bool crash()
+  {
+    if(on_snake_body(x[0],y[0]))
+      {
+	return true;
+      }
+    else
+      return false;
+  }
+};
+  
 
 bool point_in_rect(Vector2i point2d, RectangleShape rectangle)
 {
@@ -247,7 +268,8 @@ public:
 	    if (score >= points_line)
 	      {
 		
-		if( score > points_line || (score == points_line && time < time_line))
+		if( score > points_line ||
+		    (score == points_line && time < time_line))
 		  {
 		    vecOfStrs.push_back(new_str);
 		    vecOfStrs.push_back(line);
@@ -317,17 +339,30 @@ int main()
   file.open ("highscore.txt");		  		      
   highscore hs(file);
 
-  start=true;
-  startup_screen=false;
-  game_over = true;
-  highsc_flag=true;
-  points = 9;
-  time_str = "Time: 500.1";
-  tot_time = 500.1;
+  // Initialize the snake
+  Snake snake;
+  snake.init();
+  
+  //  start=true;
+  //startup_screen=false;
+  //game_over = true;
+  //highsc_flag=true;
+  //points = 9;
+  //time_str = "Time: 500.1";
+  //tot_time = 500.1;
   
 
   // Textures
-  Texture t1_64, t1_128, snake_sprite, snake_body, snake_body_64, snake_body_128, snake_head_up, snake_head_left, snake_head_right, snake_head_right_64, snake_head_right_128, snake_head_down, snake_head_down_64, t1, t2, t3, bg_texture_0, bg_texture_1, bg_texture_2, bg_texture_3, bg_frame, bg_frame_lu_corner, bg_frame_ld_corner, bg_frame_ru_corner, bg_frame_rd_corner, bg_frame_left, bg_frame_right, bg_frame_up, bg_frame_down, bg_frame_inner_lu_corner, bg_frame_inner_ru_corner, bg_frame_inner_ld_corner, bg_frame_inner_rd_corner, bg_frame_inner, bg_frame_rarrow, bg_frame_larrow, bg_frame_larrow2, bg_frame_uarrow, bg_frame_darrow, one_128, one_64;
+  Texture t1_64, t1_128, snake_sprite, snake_body, snake_body_64, snake_body_128,
+    snake_head_up, snake_head_left, snake_head_right, snake_head_right_64,
+    snake_head_right_128, snake_head_down, snake_head_down_64, t1, t2, t3,
+    bg_texture_0, bg_texture_1, bg_texture_2, bg_texture_3, bg_frame,
+    bg_frame_lu_corner, bg_frame_ld_corner, bg_frame_ru_corner,
+    bg_frame_rd_corner, bg_frame_left, bg_frame_right, bg_frame_up,
+    bg_frame_down, bg_frame_inner_lu_corner, bg_frame_inner_ru_corner,
+    bg_frame_inner_ld_corner, bg_frame_inner_rd_corner, bg_frame_inner,
+    bg_frame_rarrow, bg_frame_larrow, bg_frame_larrow2, bg_frame_uarrow,
+    bg_frame_darrow, one_128, one_64;
 
 
   // Open sprites
@@ -411,7 +446,6 @@ int main()
   Sprite bg_frame_img(bg_frame);
   Sprite snake_frontpage(snake_sprite);
 
-  snake_body_128_img.setPosition(128*2-96, 128*5);
   
   
   // Rectangles
@@ -477,7 +511,7 @@ int main()
   frontp_text_1.setPosition(Vector2f(WIN_WIDTH/2.0, 272));
   frontp_text_1.setColor(Color::White);
 
-  frontp_text_1.setFont(frontp_font_2);
+  frontp_text_2.setFont(frontp_font_2);
   frontp_text_2.setOrigin(Vector2f(0,0));
   frontp_text_2.setString("Erik Bostrom, 2018");
   frontp_text_2.setCharacterSize(28);
@@ -764,13 +798,13 @@ int main()
 
 	      // Keyboard arrow directions
 	      if (Keyboard::isKeyPressed(Keyboard::Left ))
-		if(dir!=2 && !new_level) dir=1;      
+		if(snake.head_dir!=2 && !new_level) snake.head_dir=1;      
 	      if (Keyboard::isKeyPressed(Keyboard::Right))
-		if(dir!=1 && !new_level) dir=2;
+		if(snake.head_dir!=1 && !new_level) snake.head_dir=2;
 	      if (Keyboard::isKeyPressed(Keyboard::Up   ))
-		if(dir!=0 && !new_level) dir=3;
+		if(snake.head_dir!=0 && !new_level) snake.head_dir=3;
 	      if (Keyboard::isKeyPressed(Keyboard::Down ))
-		if(dir!=3 && !new_level) dir=0;
+		if(snake.head_dir!=3 && !new_level) snake.head_dir=0;
 
 	      // Level up
 	      if (tot_time > level_time[level] && level+1<MAX_LEVEL){
@@ -779,11 +813,21 @@ int main()
 		level++;
 	      }
 
-	      // Update position
+	      // Move the snake
 	      if (!new_level && timer>level_speed[level])
 		{
 		  timer=0;
-		  Update();
+		  snake.move_one_box();
+		  
+		  if (snake.crash())
+		    game_over=true;
+
+		  if(snake.eat(fruit.x,fruit.y))
+		    {
+		      while(snake.on_snake(fruit.x,fruit.y))
+			fruit.new_location();
+		    }
+		  
 		}
 
 	      // Draw background
@@ -921,26 +965,26 @@ int main()
 		    window.draw(background_img);
 		  }
 	      
-	      if(dir==0){
-		snake_head_down_img.setPosition(offset_x+snake[0].x*block_size_x, offset_y+snake[0].y*block_size_y);
+	      if(snake.head_dir==0){
+		snake_head_down_img.setPosition(offset_x+snake.x[0]*block_size_x, offset_y+snake.y[0]*block_size_y);
 		window.draw(snake_head_down_img);
 	      }
-	      if(dir==1){
-		snake_head_left_img.setPosition(offset_x +snake[0].x*block_size_x, offset_y+snake[0].y*block_size_y);
+	      if(snake.head_dir==1){
+		snake_head_left_img.setPosition(offset_x +snake.x[0]*block_size_x, offset_y+snake.y[0]*block_size_y);
 		window.draw(snake_head_left_img);
 	      }
-	      if(dir==2){
-		snake_head_right_img.setPosition(offset_x+snake[0].x*block_size_x, offset_y+snake[0].y*block_size_y);
+	      if(snake.head_dir==2){
+		snake_head_right_img.setPosition(offset_x+snake.x[0]*block_size_x, offset_y+snake.y[0]*block_size_y);
 		window.draw(snake_head_right_img);
 	      }
-	      if(dir==3){
-		snake_head_up_img.setPosition(offset_x+snake[0].x*block_size_x, offset_y+snake[0].y*block_size_y);
+	      if(snake.head_dir==3){
+		snake_head_up_img.setPosition(offset_x+snake.x[0]*block_size_x, offset_y+snake.y[0]*block_size_y);
 		window.draw(snake_head_up_img);
 	      }
 
-	      for (int i=1;i<num;i++)
+	      for (int i=1;i<snake.length;i++)
 		{
-		  snake_body_img.setPosition(offset_x+snake[i].x*block_size_x, offset_y+snake[i].y*block_size_y);
+		  snake_body_img.setPosition(offset_x+snake.x[i]*block_size_x, offset_y+snake.y[i]*block_size_y);
 		  window.draw(snake_body_img);
 		}
 	      fruit_img.setPosition(offset_x+fruit.x*block_size_x,  offset_y+fruit.y*block_size_y);
@@ -1140,14 +1184,9 @@ int main()
 	  
 	  if (!game_over || (!processing_writing && timer2>5.0))
 	    {
-	      num = 4;	  
+
+	      snake.init();
 	      fruit.x = 10; fruit.y=10;
-	      for(int i=0; i<num; i++)
-		{
-		  snake[i].x=0;
-		  snake[i].y=0;
-		}
-	      dir = 0;
 
 	      game_over=false;
 	      startup_screen = false;
