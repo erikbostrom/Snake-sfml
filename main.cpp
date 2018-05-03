@@ -9,7 +9,7 @@
 #include <string>
 #include <iterator>
 
-#define MAX_LEVEL 4
+#define MAX_LEVEL 10
 #define M 25
 #define N 25
 #define M_bg 200
@@ -26,31 +26,106 @@ int block_size_x = 32;
 int block_size_y = 32;
 int bg_block_size_x = 8;
 int bg_block_size_y = 8;
-float level_time[4]={5,50,75,100};
-float level_speed[4]={0.2,0.2,0.2,0.1*0.8*0.8*0.8};
-bool game_over=false;
-bool highsc_flag;
-bool processing_writing=false;
-bool writing;
-bool flag=false;
+
+
 string name="                    ";
 string input;
 
 int dir;
-int points = 0;
+
+
+struct Parameter
+{
+  int level, points;
+  float level_time[MAX_LEVEL], level_speed[MAX_LEVEL];
+  float timer, timer2, tot_time, new_level_delay, start_time;
+
+  void init()
+  {
+    level    = 0;
+    points   = 0;
+    timer    = 0;
+    timer2   = 0;
+    tot_time = 0;
+    new_level_delay = 2;
+
+    for(int i=0; i<MAX_LEVEL; i++)
+      level_time[i] = 20*(1+0.8*i);
+   
+
+    for(int i=0; i<MAX_LEVEL; i++)
+      level_speed[i] = 0.15*pow(0.8,i);
+  }  
+};
+
+
+struct Flag
+{
+  bool game_over;
+  bool processing_writing;
+  bool writing;
+  bool f;
+  bool new_level;
+  bool start;
+  bool show_highscore;
+  bool startup_screen;
+
+  void init()
+  {
+    game_over=false; 
+    processing_writing=false;
+    writing=false;
+    new_level=false;
+    start=false;
+    show_highscore=false;
+    startup_screen=true;
+    f=false;
+  }
+  
+  void reset()
+  {
+    game_over=false; 
+    processing_writing=false;
+    writing=false;
+    new_level=false;
+    start=false;
+    show_highscore=false;
+    startup_screen=false;
+    f=false;
+  }
+};
 
 
 struct Fruit
 {
   int x;
   int y;
+  int value;
 
+  void init()
+  {
+    x=10;
+    y=10;
+    value = 5;
+  }
+
+  void reset_value()
+  {
+    value=5;
+  }
+  
   void new_location()
   {
     x = rand() % N;
     y = rand() % M;
-  }  
-} fruit;
+    reset_value();
+  }
+  void decrease_value()
+  {
+    if(value>0)
+      value--;
+  }
+};
 
 
 int center_rect_x(int tot_w, int rect_w)
@@ -85,13 +160,14 @@ public:
   int y[100];
 
   int length;
-  int head_dir;
+  int head_dir[2];
 
   Snake(){};
   
   void init()
   {
-    head_dir=0;
+    head_dir[0]=2;
+    head_dir[1]=2;
     length=4;
     x[0]=2;
     x[1]=2;
@@ -105,7 +181,7 @@ public:
   
   void move_one_box()
   {
-    
+
     // Update body location
     for (int i=length; i>0; --i)
       {
@@ -113,11 +189,15 @@ public:
 	y[i] = y[i-1];
       }
 
+    if(abs(head_dir[0]-head_dir[1])==2) head_dir[0]=head_dir[1];    
+    
     // Update head location
-    if (head_dir==0) y[0] += 1;  
-    if (head_dir==1) x[0] -= 1;        
-    if (head_dir==2) x[0] += 1;         
-    if (head_dir==3) y[0] -= 1;
+    if (head_dir[0]==0) y[0] -= 1;  
+    if (head_dir[0]==1) x[0] -= 1;  
+    if (head_dir[0]==2) y[0] += 1;         
+    if (head_dir[0]==3) x[0] += 1;
+
+    head_dir[1]=head_dir[0];
 
     // The domain is a torus.
     if (x[0]>N-1) x[0]=0;
@@ -129,6 +209,7 @@ public:
 
   bool on_snake(int fx, int fy)
   {
+    bool temp;
     for (int i=0; i<length; i++)
       {
 	if(x[i]==fx && y[i]==fy)
@@ -136,8 +217,9 @@ public:
 	    return true;
 	  }
 	else
-	  return false;
+	  temp = false;
       }
+    return temp;
   }
   
   bool on_snake_body(int fx, int fy)
@@ -147,7 +229,7 @@ public:
       {
 	if( x[i]==fx && y[i]==fy )
 	  {
-	    temp = true;
+	    return true;
 	  }
 	else
 	  temp = false;
@@ -312,41 +394,37 @@ public:
 
 int main()
 {
-  // Local variables
-  Clock clock;
-  Event event;
-  Text text;
-  float timer=0, timer2=0, tot_time=0, new_level_delay=2, start_time;
-  int level = 0;
-  bool new_level = false;
-  bool start = false;
-  bool show_highscore = false;
-  bool startup_screen = true;
-  string time_str, score_str;
-  fstream file;
-
-
-  
 
   /////////////////////////////////////////////////////////
   // INITIALIZATION                                      //
   /////////////////////////////////////////////////////////
 
+  Clock clock;
+  Event event;
+  Text text;  
+  string time_str, score_str;
+  fstream file;
+  Snake snake;
+  Fruit fruit;
+  Flag flag;
+  Parameter par;
+  
+  snake.init();
+  fruit.init();
+  flag.init();
+  par.init();
+  
   // Open a window
   RenderWindow window(VideoMode(WIN_WIDTH, WIN_HEIGHT), "Snake");
 
   // Open highscore file
   file.open ("highscore.txt");		  		      
   highscore hs(file);
-
-  // Initialize the snake
-  Snake snake;
-  snake.init();
+  
   
   //  start=true;
   //startup_screen=false;
   //game_over = true;
-  //highsc_flag=true;
   //points = 9;
   //time_str = "Time: 500.1";
   //tot_time = 500.1;
@@ -586,11 +664,6 @@ int main()
   title_text.setPosition(Vector2f(WIN_WIDTH/2.0, WIN_HEIGHT*0.2));
   title_text.setColor(Color::White);
 
-  
-
-  // Initial location of the fruit
-  fruit.x=10;
-  fruit.y=10; 
 
 
   
@@ -607,7 +680,7 @@ int main()
 	{
 	  if (event.type == sf::Event::Closed) window.close();
 
-	  if (processing_writing)
+	  if (flag.processing_writing)
 	    {
 	      if (event.type == sf::Event::TextEntered)
 		{
@@ -617,7 +690,7 @@ int main()
 		    }
 		  else if (event.text.unicode == 13)
 		    {
-		      flag = true;
+		      flag.f = true;
 		    }
 		  else
 			
@@ -631,7 +704,7 @@ int main()
 	    }
 	}      
       
-      if (startup_screen)
+      if (flag.startup_screen)
 	{
 	  
 	  window.clear(Color::Black);
@@ -668,9 +741,9 @@ int main()
 	  
 	  float time1 = clock.getElapsedTime().asSeconds();	  
 	  window.display();	  
-	  if (time1>5.0) startup_screen=false;
+	  if (time1>5.0) flag.startup_screen=false;
 	}
-      if (!startup_screen && !new_level && !start && !show_highscore)
+      if (!flag.startup_screen && !flag.new_level && !flag.start && !flag.show_highscore)
 	{
 	  window.clear(Color::Black);	  
   
@@ -726,17 +799,17 @@ int main()
 	  if (Mouse::isButtonPressed(Mouse::Left))
 	    {
 	      Vector2i localPosition = Mouse::getPosition(window);
-	      if(point_in_rect(localPosition,rect1)) start=true;
-	      if(point_in_rect(localPosition,rect2)) show_highscore=true;
+	      if(point_in_rect(localPosition,rect1)) flag.start=true;
+	      if(point_in_rect(localPosition,rect2)) flag.show_highscore=true;
 
 	    }
-	  if(start)
+	  if(flag.start)
 	    {
-	      new_level=true;
+	      flag.new_level=true;
 	      clock.restart();
 	    }	    
 	}
-      if(!startup_screen && !new_level && !start && show_highscore)
+      if(!flag.startup_screen && !flag.new_level && !flag.start && flag.show_highscore)
 	{
     
 	  window.clear(Color::Black);
@@ -781,57 +854,54 @@ int main()
 	    }
 	  window.display();
 	  
-	  if (Mouse::isButtonPressed(Mouse::Left)) show_highscore=false;
+	  if (Mouse::isButtonPressed(Mouse::Left)) flag.show_highscore=false;
 	}
-      if (start && !game_over)
+      if (flag.start && !flag.game_over)
 	{
 
 	  float time = clock.getElapsedTime().asSeconds();
 	  clock.restart();
-	  timer += time;
+	  par.timer += time;
 	  window.clear(Color::Black);
 
-	  if (!(level==0 && new_level))
+	  if (!(par.level==0 && flag.new_level))
 	    {
 	      
-	      if (!new_level) tot_time += time;
+	      if (!flag.new_level) par.tot_time += time;
 
 	      // Keyboard arrow directions
-	      if (Keyboard::isKeyPressed(Keyboard::Left ))
-		if(snake.head_dir!=2 && !new_level) snake.head_dir=1;      
-	      if (Keyboard::isKeyPressed(Keyboard::Right))
-		if(snake.head_dir!=1 && !new_level) snake.head_dir=2;
-	      if (Keyboard::isKeyPressed(Keyboard::Up   ))
-		if(snake.head_dir!=0 && !new_level) snake.head_dir=3;
-	      if (Keyboard::isKeyPressed(Keyboard::Down ))
-		if(snake.head_dir!=3 && !new_level) snake.head_dir=0;
+	      if (Keyboard::isKeyPressed(Keyboard::Up   )) snake.head_dir[0]=0;
+	      if (Keyboard::isKeyPressed(Keyboard::Left )) snake.head_dir[0]=1; 
+	      if (Keyboard::isKeyPressed(Keyboard::Down )) snake.head_dir[0]=2;
+	      if (Keyboard::isKeyPressed(Keyboard::Right)) snake.head_dir[0]=3;
 
 	      // Level up
-	      if (tot_time > level_time[level] && level+1<MAX_LEVEL){
-		cout << "LEVEL " << level+2 << ". Speed is increased with 20 percent!" << endl;
-		new_level = true;
-		level++;
+	      if (par.tot_time > par.level_time[par.level] && par.level+1<MAX_LEVEL){
+		flag.new_level = true;
+		par.level++;
 	      }
 
 	      // Move the snake
-	      if (!new_level && timer>level_speed[level])
-		{
-		  timer=0;
+	      if (!flag.new_level && par.timer>par.level_speed[par.level])
+		{		  
+		  par.timer=0;		  
 		  snake.move_one_box();
-		  
+
 		  if (snake.crash())
-		    game_over=true;
+		    flag.game_over=true;
 
 		  if(snake.eat(fruit.x,fruit.y))
 		    {
+		      par.points++;
+		      // New fruit, not on top of the snake
+		      fruit.new_location();
 		      while(snake.on_snake(fruit.x,fruit.y))
 			fruit.new_location();
-		    }
-		  
+		    }		  
 		}
 
 	      // Draw background
-	      if (level==0){
+	      if (par.level==0){
 		for (int i=0; i<M_bg; i++) 
 		  for (int j=0; j<N_bg; j++) 
 		    {
@@ -839,7 +909,7 @@ int main()
 		      window.draw(bg_img_0);
 		    }  
 	      }
-	      if (level==1)
+	      if (par.level==1)
 		{
 		  for (int i=0; i<M_bg; i++) 
 		    for (int j=0; j<N_bg; j++) 
@@ -848,7 +918,7 @@ int main()
 			window.draw(bg_img_1);
 		      }
 		}
-	      if (level==2)
+	      if (par.level==2)
 		{
 		  for (int i=0; i<M_bg; i++) 
 		    for (int j=0; j<N_bg; j++) 
@@ -857,7 +927,7 @@ int main()
 			window.draw(bg_img_2);
 		      }
 		}
-	      if (level==3)
+	      if (par.level==3)
 		{
 		  for (int i=0; i<M_bg; i++) 
 		    for (int j=0; j<N_bg; j++) 
@@ -965,21 +1035,21 @@ int main()
 		    window.draw(background_img);
 		  }
 	      
-	      if(snake.head_dir==0){
-		snake_head_down_img.setPosition(offset_x+snake.x[0]*block_size_x, offset_y+snake.y[0]*block_size_y);
-		window.draw(snake_head_down_img);
+	      if(snake.head_dir[0]==0){
+		snake_head_up_img.setPosition(offset_x+snake.x[0]*block_size_x, offset_y+snake.y[0]*block_size_y);
+		window.draw(snake_head_up_img);
 	      }
-	      if(snake.head_dir==1){
+	      if(snake.head_dir[0]==1){
 		snake_head_left_img.setPosition(offset_x +snake.x[0]*block_size_x, offset_y+snake.y[0]*block_size_y);
 		window.draw(snake_head_left_img);
 	      }
-	      if(snake.head_dir==2){
+	      if(snake.head_dir[0]==2){
+		snake_head_down_img.setPosition(offset_x+snake.x[0]*block_size_x, offset_y+snake.y[0]*block_size_y);
+		window.draw(snake_head_down_img);
+	      }
+	      if(snake.head_dir[0]==3){
 		snake_head_right_img.setPosition(offset_x+snake.x[0]*block_size_x, offset_y+snake.y[0]*block_size_y);
 		window.draw(snake_head_right_img);
-	      }
-	      if(snake.head_dir==3){
-		snake_head_up_img.setPosition(offset_x+snake.x[0]*block_size_x, offset_y+snake.y[0]*block_size_y);
-		window.draw(snake_head_up_img);
 	      }
 
 	      for (int i=1;i<snake.length;i++)
@@ -1036,14 +1106,13 @@ int main()
 	      window.draw(bg_frame_lu_corner_img);
 	      window.draw(bg_frame_ru_corner_img);
 	      window.draw(bg_frame_ld_corner_img);
-	      window.draw(bg_frame_rd_corner_img);
-	      	      
+	      window.draw(bg_frame_rd_corner_img);	      	      
 	      
 		
 	      string tot_time_str;
 	      stringstream ss;
 	      ss.precision(3);
-	      ss << tot_time;
+	      ss << par.tot_time;
 	      ss >> tot_time_str;
 	      time_str = "Time: " + tot_time_str;
 	      
@@ -1051,7 +1120,7 @@ int main()
 	      time_text.setPosition(Vector2f(offset_x/5 + 20, offset_y + 20));  
 	      window.draw(time_text);
 	      
-	      score_str = "Score: " + to_string(points);
+	      score_str = "Score: " + to_string(par.points);
 	      score_text.setString(score_str);
 	      score_text.setPosition(Vector2f(offset_x/5 + 20, offset_y + 60));  
 	      window.draw(score_text);	      
@@ -1059,14 +1128,14 @@ int main()
 	      
 	    }
 
-	  if (new_level && level<MAX_LEVEL)
+	  if (flag.new_level && par.level<MAX_LEVEL)
 	    {
-	      string s = "Level " + to_string(level+1);
+	      string s = "Level " + to_string(par.level+1);
 	      level_text.setString(s);
 	      level_text.setOrigin(center<Text>(level_text));
 	      level_text.setPosition(Vector2f(WIN_WIDTH/2.0f, WIN_HEIGHT/2.0));  
 	      
-	      if (level==0)
+	      if (par.level==0)
 		{
 		  level_text.setColor(Color::White);
 		}
@@ -1075,16 +1144,16 @@ int main()
 		  level_text.setColor(Color::Black);
 		}
 	      window.draw(level_text);
-	      if (timer > new_level_delay)
+	      if (par.timer > par.new_level_delay)
 		{
-		  timer = 0;
-		  new_level = false;
+		  par.timer = 0;
+		  flag.new_level = false;
 		}	          
 	    }
 	  window.display();
 	  
 	}
-      if(game_over)
+      if(flag.game_over)
 	{
 
 	  window.clear(Color::Black);
@@ -1093,7 +1162,7 @@ int main()
 	  final_result_text.setString("FINAL RESULTS:");
 	  final_result_text.setPosition(Vector2f(WIN_WIDTH*0.15, WIN_HEIGHT*0.35));
 	  window.draw(final_result_text);
-	  string points_str = "Points: " + to_string(points);
+	  string points_str = "Points: " + to_string(par.points);
 	  final_result_text.setString(points_str);
 	  final_result_text.setPosition(Vector2f(WIN_WIDTH*0.15, WIN_HEIGHT*0.425));
 	  window.draw(final_result_text);
@@ -1102,9 +1171,9 @@ int main()
 	  window.draw(final_result_text);
 
 
-	  if (points >= hs.last_points()) processing_writing=true;
+	  if (par.points >= hs.last_points()) flag.processing_writing=true;
 
-	  if(processing_writing)
+	  if(flag.processing_writing)
 	    {
 
 	      text_input_info.setString("You made it into the top 10 highscore!");
@@ -1159,42 +1228,35 @@ int main()
 	     
 	      FloatRect text_bounds = text_input.getLocalBounds();
 	      cursor.setPosition(Vector2f(WIN_WIDTH*0.15+16+text_bounds.left+text_bounds.width+8, WIN_HEIGHT*0.8+14));
-	      if(int(timer2) % 2 == 0) window.draw(cursor);
+	      if(int(par.timer2) % 2 == 0) window.draw(cursor);
 	      window.draw(text_input);
 
-	      if(flag)
+	      if(flag.f)
 		{
-		  game_over = false;
-		  show_highscore = true;
+		  flag.game_over = false;
+		  flag.show_highscore = true;
 		}
 	      
 	    }
-	  if(!game_over && show_highscore)
+	  if(!flag.game_over && flag.show_highscore)
 	    {
 	      name.replace(0, input.size(), input);
-	      hs.add(name,points,tot_time);
-	      flag=false;
+	      hs.add(name,par.points,par.tot_time);
+	      flag.f=false;
 	    }
 	  
 	  window.display();
 		  
 	  float time2 = clock.getElapsedTime().asSeconds();
 	  clock.restart();
-	  timer2 += time2;
+	  par.timer2 += time2;
 	  
-	  if (!game_over || (!processing_writing && timer2>5.0))
+	  if (!flag.game_over || (!flag.processing_writing && par.timer2>5.0))
 	    {
-
 	      snake.init();
-	      fruit.x = 10; fruit.y=10;
-
-	      game_over=false;
-	      startup_screen = false;
-	      new_level = false;
-	      start = false;
-	      processing_writing=false;
-	      level=0;
-	      points=0;
+	      fruit.init();
+	      flag.reset();
+	      par.init();
 	    }	  
 	}
     }
