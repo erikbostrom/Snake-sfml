@@ -9,7 +9,7 @@
 #include <string>
 #include <iterator>
 
-#define MAX_LEVEL 10
+#define MAX_LEVEL 5
 #define M 25
 #define N 25
 #define M_bg 200
@@ -451,12 +451,13 @@ int main()
     snake_head_right_128, snake_head_down, snake_head_down_64, t1, t2, t3,
     points1,points2,points3,points4,points5,
     bg_texture_0, bg_texture_1, bg_texture_2, bg_texture_3, bg_frame,
+    bg_texture_64_1,bg_texture_64_2,bg_texture_64_3,bg_texture_64_4,bg_texture_64_5,
     bg_frame_lu_corner, bg_frame_ld_corner, bg_frame_ru_corner,
     bg_frame_rd_corner, bg_frame_left, bg_frame_right, bg_frame_up,
     bg_frame_down, bg_frame_inner_lu_corner, bg_frame_inner_ru_corner,
     bg_frame_inner_ld_corner, bg_frame_inner_rd_corner, bg_frame_inner,
     bg_frame_rarrow, bg_frame_larrow, bg_frame_larrow2, bg_frame_uarrow,
-    bg_frame_darrow, one_128, one_64;
+    bg_frame_darrow, one_128, one_64, button_292x72;
 
 
   // Open sprites
@@ -502,6 +503,12 @@ int main()
   bg_texture_1.loadFromFile("images/bg_1_8x8.png");
   bg_texture_2.loadFromFile("images/bg_2_8x8.png");
   bg_texture_3.loadFromFile("images/bg_3_8x8.png");
+  bg_texture_64_1.loadFromFile("images/bg_64x64_1.png");
+  bg_texture_64_2.loadFromFile("images/bg_64x64_2.png");
+  bg_texture_64_3.loadFromFile("images/bg_64x64_3.png");
+  bg_texture_64_4.loadFromFile("images/bg_64x64_4.png");
+  bg_texture_64_5.loadFromFile("images/bg_64x64_5.png");
+  button_292x72.loadFromFile("images/gray_button_292x72.png");
 
   // Declare sprites
   Sprite background_img(t1);
@@ -545,9 +552,14 @@ int main()
   Sprite bg_img_1(bg_texture_1);
   Sprite bg_img_2(bg_texture_2);
   Sprite bg_img_3(bg_texture_3);
+  Sprite bg_64_1(bg_texture_64_1);
+  Sprite bg_64_2(bg_texture_64_2);
+  Sprite bg_64_3(bg_texture_64_3);
+  Sprite bg_64_4(bg_texture_64_4);
+  Sprite bg_64_5(bg_texture_64_5);
   Sprite bg_frame_img(bg_frame);
   Sprite snake_frontpage(snake_sprite);
-
+  Sprite button_292x72_img(button_292x72);
   
   
   // Rectangles
@@ -556,6 +568,7 @@ int main()
   RectangleShape rect1(Vector2f(button_width, button_height));
   RectangleShape rect2(Vector2f(button_width, button_height));
   RectangleShape rect3(Vector2f(button_width, button_height));
+  RectangleShape rect4(Vector2f(button_width, button_height));
   RectangleShape line(Vector2f(WIN_WIDTH*0.8, 5));
   RectangleShape cursor(Vector2f(16, 48));
   RectangleShape hline(Vector2f(WIN_WIDTH*0.6, 4));
@@ -578,6 +591,12 @@ int main()
   rect3.setOutlineThickness(1);
   rect3.setOutlineColor(Color::Black);
 
+  rect4.setOrigin(center<RectangleShape>(rect3));
+  rect4.setPosition(Vector2f(WIN_WIDTH*0.1, WIN_HEIGHT*0.05));
+  rect4.setFillColor(sf::Color(192, 192, 192));
+  rect4.setOutlineThickness(1);
+  rect4.setOutlineColor(Color::Black);
+
   line.setOrigin(center<RectangleShape>(line));
   line.setPosition(Vector2f(WIN_WIDTH/2.0, WIN_HEIGHT*(1.5/6.0)));  
   line.setFillColor(sf::Color(255, 255, 255));
@@ -586,6 +605,10 @@ int main()
 
   snake_frontpage.setPosition(WIN_WIDTH*0.2, WIN_HEIGHT*0.6);
 
+
+  // Buttons
+  button_292x72_img.setOrigin(center<RectangleShape>(rect1));
+  
   // Fonts  
   Font font_menu, font_buttons, font_level_text, score_font, Game_over_font,
     Game_over_font2, frontp_font, frontp_font_2, title_font, body_font;
@@ -602,7 +625,7 @@ int main()
   
   // Text initialization
 
-  Text menu_text, text_rect1, text_rect2, text_rect3, level_text, score_text,
+  Text menu_text, text_rect1, text_rect2, text_rect3, text_rect4, level_text, score_text,
     time_text, Game_over_text, final_result_text, text_input, text_input_info,
     frontp_text_1, frontp_text_2, title_text, body_text;
 
@@ -635,7 +658,7 @@ int main()
   text_rect1.setPosition(Vector2f(WIN_WIDTH/2.0f, WIN_HEIGHT*(2.5/6.0)));
 
   text_rect2.setFont(font_buttons);
-  text_rect2.setString("High score list");
+  text_rect2.setString("High-Score List");
   text_rect2.setCharacterSize(36);
   text_rect2.setOrigin(center<Text>(text_rect2));
   text_rect2.setPosition(Vector2f(WIN_WIDTH/2.0f, WIN_HEIGHT*(3.5/6.0)));
@@ -647,6 +670,13 @@ int main()
   text_rect3.setOrigin(center<Text>(text_rect3));
   text_rect3.setPosition(Vector2f(WIN_WIDTH/2.0f, WIN_HEIGHT*(4.5/6.0)));
   text_rect3.setColor(Color::Black);
+
+  text_rect4.setFont(font_buttons);
+  text_rect4.setString("To Menu");
+  text_rect4.setCharacterSize(36);
+  text_rect4.setOrigin(center<Text>(text_rect4));
+  text_rect4.setPosition(Vector2f(WIN_WIDTH*0.1, WIN_HEIGHT*0.05));
+  text_rect4.setColor(Color::Black);
 
   score_text.setFont(score_font);  
   score_text.setCharacterSize(28);
@@ -679,14 +709,14 @@ int main()
 
   body_text.setFont(body_font);
   body_text.setCharacterSize(36);
-  body_text.setColor(Color::White);
+  body_text.setColor(Color::Black);
   
   title_text.setFont(body_font);
   title_text.setCharacterSize(60);
   title_text.setString("Top 10");
   title_text.setOrigin(center<Text>(title_text));
   title_text.setPosition(Vector2f(WIN_WIDTH/2.0, WIN_HEIGHT*0.2));
-  title_text.setColor(Color::White);
+  title_text.setColor(Color::Black);
 
 
 
@@ -809,10 +839,13 @@ int main()
 	  window.draw(snake_head_down_64_img);
 	  one_64_img.setPosition(64*3, 64*13);
 	  window.draw(one_64_img);
-	  
-	  window.draw(rect1);
-	  window.draw(rect2);
-	  window.draw(rect3);
+
+	  button_292x72_img.setPosition(Vector2f(WIN_WIDTH/2.0, WIN_HEIGHT*(2.5/6.0)));
+	  window.draw(button_292x72_img);
+	  button_292x72_img.setPosition(Vector2f(WIN_WIDTH/2.0, WIN_HEIGHT*(3.5/6.0)));
+	  window.draw(button_292x72_img);
+	  button_292x72_img.setPosition(Vector2f(WIN_WIDTH/2.0, WIN_HEIGHT*(4.5/6.0)));
+	  window.draw(button_292x72_img);
 	  window.draw(menu_text);
 	  window.draw(text_rect1);
 	  window.draw(text_rect2);
@@ -837,6 +870,53 @@ int main()
 	{
     
 	  window.clear(Color::Black);
+
+
+	  int MM = 96;
+	  int NN = 144;
+	  int x_lu_corner = (WIN_WIDTH-NN*8)/2.0;
+	  int y_lu_corner = (WIN_HEIGHT-MM*8)/2.0+16;
+	  
+	  for(int i=0; i<NN; i++)
+		for(int j=0; j<MM; j++)
+		  {
+		    bg_frame_inner_img.setPosition(x_lu_corner+i*8, y_lu_corner+j*8);
+		    window.draw(bg_frame_inner_img);
+		  }	      
+	      
+	  // Frame
+	  for (int i=0; i<MM; i++)
+	    {
+	      bg_frame_left_img.setPosition(x_lu_corner, y_lu_corner + i*8);
+	      window.draw(bg_frame_left_img);
+	    }
+	  
+	  for (int i=0; i<MM; i++)
+	    {
+	      bg_frame_right_img.setPosition(x_lu_corner+NN*8, y_lu_corner + i*8);
+	      window.draw(bg_frame_right_img);
+	    }	      
+	  for (int i=0; i<NN; i++)
+	    {
+	      bg_frame_up_img.setPosition(x_lu_corner+i*8, y_lu_corner);
+	      window.draw(bg_frame_up_img);
+	    }
+	  
+	  for (int i=0; i<NN; i++)
+	    {
+	      bg_frame_down_img.setPosition(x_lu_corner + i*8, y_lu_corner + MM*8);
+	      window.draw(bg_frame_down_img);
+	    }
+	  bg_frame_lu_corner_img.setPosition(x_lu_corner,y_lu_corner);
+	  bg_frame_ru_corner_img.setPosition(x_lu_corner+NN*8,y_lu_corner);
+	  bg_frame_ld_corner_img.setPosition(x_lu_corner,y_lu_corner+MM*8);
+	  bg_frame_rd_corner_img.setPosition(x_lu_corner+NN*8,y_lu_corner+MM*8);
+	  window.draw(bg_frame_lu_corner_img);
+	  window.draw(bg_frame_ru_corner_img);
+	  window.draw(bg_frame_ld_corner_img);
+	  window.draw(bg_frame_rd_corner_img);
+	  
+	  
 	  window.draw(title_text);
 
 	  body_text.setString("Pos.");
@@ -853,7 +933,7 @@ int main()
 	  window.draw(body_text);
 	  
 	  hline.setPosition(Vector2f(WIN_WIDTH*0.2, WIN_HEIGHT*0.35));
-	  hline.setFillColor(sf::Color(255, 255, 255));
+	  hline.setFillColor(sf::Color(0, 0, 0));
 	  window.draw(hline);
     
 	  file.clear();
@@ -876,9 +956,17 @@ int main()
 	      window.draw(body_text);
 	      
 	    }
+	  //	  window.draw(rect4);
+	  button_292x72_img.setPosition(Vector2f(WIN_WIDTH*0.1, WIN_HEIGHT*0.05));
+	  window.draw(button_292x72_img);
+	  window.draw(text_rect4);	  
 	  window.display();
 	  
-	  if (Mouse::isButtonPressed(Mouse::Left)) flag.show_highscore=false;
+	  if (Mouse::isButtonPressed(Mouse::Left))
+	    {
+	      Vector2i localPosition = Mouse::getPosition(window);
+	      if(point_in_rect(localPosition,rect4)) flag.show_highscore=false;	      	     
+	    }	  
 	}
       if (flag.start && !flag.game_over)
 	{
@@ -933,41 +1021,45 @@ int main()
 
 	      // Draw background
 	      if (par.level==0){
-		for (int i=0; i<M_bg; i++) 
-		  for (int j=0; j<N_bg; j++) 
+		for (int i=0; i<WIN_WIDTH/64; i++) 
+		  for (int j=0; j<WIN_HEIGHT/64; j++) 
 		    {
-		      bg_img_0.setPosition(i*bg_block_size_x, j*bg_block_size_y);
-		      window.draw(bg_img_0);
+		      bg_64_1.setPosition(i*64, j*64);
+		      window.draw(bg_64_1);
 		    }  
 	      }
-	      if (par.level==1)
-		{
-		  for (int i=0; i<M_bg; i++) 
-		    for (int j=0; j<N_bg; j++) 
-		      {
-			bg_img_1.setPosition(i*bg_block_size_x, j*bg_block_size_y);
-			window.draw(bg_img_1);
-		      }
-		}
-	      if (par.level==2)
-		{
-		  for (int i=0; i<M_bg; i++) 
-		    for (int j=0; j<N_bg; j++) 
-		      {
-			bg_img_2.setPosition(i*bg_block_size_x, j*bg_block_size_y);
-			window.draw(bg_img_2);
-		      }
-		}
-	      if (par.level==3)
-		{
-		  for (int i=0; i<M_bg; i++) 
-		    for (int j=0; j<N_bg; j++) 
-		      {
-			bg_img_3.setPosition(i*bg_block_size_x, j*bg_block_size_y);
-			window.draw(bg_img_3);			
-		      }
-		}
-
+	      if (par.level==1){
+		for (int i=0; i<WIN_WIDTH/64; i++) 
+		  for (int j=0; j<WIN_HEIGHT/64; j++) 
+		    {
+		      bg_64_2.setPosition(i*64, j*64);
+		      window.draw(bg_64_2);
+		    }  
+	      }	     
+	      if (par.level==2){
+		for (int i=0; i<WIN_WIDTH/64; i++) 
+		  for (int j=0; j<WIN_HEIGHT/64; j++) 
+		    {
+		      bg_64_3.setPosition(i*64, j*64);
+		      window.draw(bg_64_3);
+		    }  
+	      }	      
+	      if (par.level==3){
+		for (int i=0; i<WIN_WIDTH/64; i++) 
+		  for (int j=0; j<WIN_HEIGHT/64; j++) 
+		    {
+		      bg_64_4.setPosition(i*64, j*64);
+		      window.draw(bg_64_4);
+		    }  
+	      }	      
+	      if (par.level>4){
+		for (int i=0; i<WIN_WIDTH/64; i++) 
+		  for (int j=0; j<WIN_HEIGHT/64; j++) 
+		    {
+		      bg_64_5.setPosition(i*64, j*64);
+		      window.draw(bg_64_5);
+		    }  
+	      }	      
 
 	      // PLAY AREA
 	      int offset_x = (WIN_WIDTH-M*block_size_x)/2.0;
@@ -1208,8 +1300,7 @@ int main()
 	}
       if(flag.game_over)
 	{
-
-	  window.clear(Color::Black);
+	  
 	  Game_over_text.setPosition(Vector2f(WIN_WIDTH/2.0f, WIN_HEIGHT*0.2));
 	  window.draw(Game_over_text);
 	  final_result_text.setString("FINAL RESULTS:");
@@ -1223,9 +1314,9 @@ int main()
 	  final_result_text.setPosition(Vector2f(WIN_WIDTH*0.15, WIN_HEIGHT*0.485));
 	  window.draw(final_result_text);
 
-
+	  
 	  if (par.points >= hs.last_points()) flag.processing_writing=true;
-
+	  
 	  if(flag.processing_writing)
 	    {
 
@@ -1310,6 +1401,7 @@ int main()
 	      fruit.init();
 	      flag.reset();
 	      par.init();
+	      flag.show_highscore=true;
 	    }	  
 	}
     }
