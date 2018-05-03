@@ -101,6 +101,7 @@ struct Fruit
   int x;
   int y;
   int value;
+  float time;
 
   void init()
   {
@@ -109,22 +110,31 @@ struct Fruit
     value = 5;
   }
 
+  void new_location()
+  {
+    x = rand() % N;
+    y = rand() % M;
+  }
+
   void reset_value()
   {
     value=5;
   }
   
-  void new_location()
+  void reset_timer()
   {
-    x = rand() % N;
-    y = rand() % M;
-    reset_value();
+    time = 0;
   }
-  void decrease_value()
+  void point_value(float time_interval)
   {
-    if(value>0)
-      value--;
+    time += time_interval;
+    for (int i=0; i<5; i++)
+      {
+	if(time > 2*i && time < 2*(i+1) )
+	  value = 5-i;
+      }
   }
+
 };
 
 
@@ -237,11 +247,16 @@ public:
     return temp;
   }
 
-  bool eat(int fx, int fy)
+  bool eat(int fx, int fy, int value)
   {
     if (x[0]==fx && y[0]==fy)
       {
-	length++;
+	for (int i=0; i<value; i++)
+	  {
+	    x[length+i]=x[length+i-1];
+	    y[length+i]=y[length+i-1];
+	  }
+	length = length + value;
 	return true;
       }
     else
@@ -434,6 +449,7 @@ int main()
   Texture t1_64, t1_128, snake_sprite, snake_body, snake_body_64, snake_body_128,
     snake_head_up, snake_head_left, snake_head_right, snake_head_right_64,
     snake_head_right_128, snake_head_down, snake_head_down_64, t1, t2, t3,
+    points1,points2,points3,points4,points5,
     bg_texture_0, bg_texture_1, bg_texture_2, bg_texture_3, bg_frame,
     bg_frame_lu_corner, bg_frame_ld_corner, bg_frame_ru_corner,
     bg_frame_rd_corner, bg_frame_left, bg_frame_right, bg_frame_up,
@@ -458,7 +474,11 @@ int main()
   snake_head_right_128.loadFromFile("images/Snake_head_right_128x128.png");
   snake_head_down.loadFromFile("images/Snake_head_down_32x32.png");
   snake_head_down_64.loadFromFile("images/Snake_head_down_64x64.png");  
-  t3.loadFromFile("images/one_point_32x32.png");
+  points1.loadFromFile("images/one_point_32x32.png");
+  points2.loadFromFile("images/two_points_32x32.png");
+  points3.loadFromFile("images/three_points_32x32.png");
+  points4.loadFromFile("images/four_points_32x32.png");
+  points5.loadFromFile("images/five_points_32x32.png");
   one_64.loadFromFile("images/one_point_64x64.png");
   one_128.loadFromFile("images/one_point_128x128.png");
   bg_frame_lu_corner.loadFromFile("images/frame_lu-corner_8x8.png");
@@ -497,7 +517,11 @@ int main()
   Sprite snake_head_right_128_img(snake_head_right_128);
   Sprite snake_head_down_img(snake_head_down);
   Sprite snake_head_down_64_img(snake_head_down_64);
-  Sprite fruit_img(t3);
+  Sprite fruit1_img(points1);
+  Sprite fruit2_img(points2);
+  Sprite fruit3_img(points3);
+  Sprite fruit4_img(points4);
+  Sprite fruit5_img(points5);
   Sprite one_64_img(one_64);
   Sprite one_128_img(one_128);
   Sprite bg_frame_left_img(bg_frame_left);
@@ -884,20 +908,27 @@ int main()
 	      // Move the snake
 	      if (!flag.new_level && par.timer>par.level_speed[par.level])
 		{		  
-		  par.timer=0;		  
 		  snake.move_one_box();
 
 		  if (snake.crash())
 		    flag.game_over=true;
 
-		  if(snake.eat(fruit.x,fruit.y))
+		  if(snake.eat(fruit.x,fruit.y,fruit.value))
 		    {
-		      par.points++;
+		      par.points = par.points + fruit.value;
+		      
 		      // New fruit, not on top of the snake
 		      fruit.new_location();
 		      while(snake.on_snake(fruit.x,fruit.y))
-			fruit.new_location();
-		    }		  
+			{
+			  fruit.new_location();
+			}
+		      
+		      fruit.reset_timer();
+		      fruit.reset_value();
+		    }
+		  fruit.point_value(par.timer);		  
+		  par.timer=0;
 		}
 
 	      // Draw background
@@ -1057,9 +1088,31 @@ int main()
 		  snake_body_img.setPosition(offset_x+snake.x[i]*block_size_x, offset_y+snake.y[i]*block_size_y);
 		  window.draw(snake_body_img);
 		}
-	      fruit_img.setPosition(offset_x+fruit.x*block_size_x,  offset_y+fruit.y*block_size_y);
-	      window.draw(fruit_img);
-
+	      if(fruit.value==1)
+		{
+		  fruit1_img.setPosition(offset_x+fruit.x*block_size_x,  offset_y+fruit.y*block_size_y);
+	      window.draw(fruit1_img);
+		}
+	      if(fruit.value==2)
+		{
+	      fruit2_img.setPosition(offset_x+fruit.x*block_size_x,  offset_y+fruit.y*block_size_y);
+	      window.draw(fruit2_img);
+		}
+	      if(fruit.value==3)
+		{
+	      fruit3_img.setPosition(offset_x+fruit.x*block_size_x,  offset_y+fruit.y*block_size_y);
+	      window.draw(fruit3_img);
+		}
+	      if(fruit.value==4)
+		{
+	      fruit4_img.setPosition(offset_x+fruit.x*block_size_x,  offset_y+fruit.y*block_size_y);
+	      window.draw(fruit4_img);
+		}
+	      if(fruit.value==5)
+		{
+	      fruit5_img.setPosition(offset_x+fruit.x*block_size_x,  offset_y+fruit.y*block_size_y);
+	      window.draw(fruit5_img);
+		}
 
 	      
 	      // >>>> SCORE-BOARD <<<<
